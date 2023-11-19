@@ -8,7 +8,7 @@ endif()
 
 # Debug messages - if you want to get a list of source files and examine
 # target information, enable the following by -DPRINT_CMAKE_DEBUG_INFO=ON.
-set(PRINT_CMAKE_DEBUG_INFO FALSE CACHE BOOL "print cmake debug information")
+set(PRINT_CMAKE_DEBUG_INFO TRUE CACHE BOOL "print cmake debug information")
 if(PRINT_CMAKE_DEBUG_INFO)
   include(../cmake/DebugHelper.cmake)
 endif()
@@ -176,6 +176,11 @@ if(CAFFE2_ALLOWLISTED_FILES)
   caffe2_do_allowlist(Caffe2_GPU_CU_SRCS_W_SORT_BY_KEY CAFFE2_ALLOWLISTED_FILES)
   caffe2_do_allowlist(Caffe2_HIP_SRCS CAFFE2_ALLOWLISTED_FILES)
 endif()
+
+if (USE_DAO) 
+  list(APPEND Caffe2_GPU_CU_SRCS ${DAO_C_SRCS})
+  list(APPEND Caffe2_GPU_INCLUDE ${DAO_INCLUDE_DIR})
+endif (USE_DAO)
 
 if(PRINT_CMAKE_DEBUG_INFO)
   message(STATUS "CPU sources: ")

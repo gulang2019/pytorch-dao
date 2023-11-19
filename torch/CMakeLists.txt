@@ -290,6 +290,15 @@ if(USE_COREML_DELEGATE)
   list(APPEND TORCH_PYTHON_SRCS ${TORCH_SRC_DIR}/csrc/jit/backends/coreml/cpp/preprocess.cpp)
 endif()
 
+message(STATUS "TORCH_PYTHON_SRCS: ")
+foreach(tmp ${TORCH_PYTHON_SRCS})
+  message(STATUS "  " ${tmp})
+endforeach()
+
+if (USE_DAO)
+  list(APPEND TORCH_PYTHON_SRCS ${DAO_PYTHON})
+  list(APPEND TORCH_PYTHON_INCLUDE_DIRECTORIES ${DAO_INCLUDE_DIR})
+endif (USE_DAO)
 
 add_library(torch_python SHARED ${TORCH_PYTHON_SRCS})
 # Avoid numpy for the DEPLOY build
@@ -339,6 +348,17 @@ if(USE_ROCM)
 endif()
 
 target_compile_definitions(torch_python PRIVATE "-DTHP_BUILD_MAIN_LIB")
+
+message(STATUS "TORCH_PYTHON_LINK_LIBRARIES: ")
+foreach(tmp ${TORCH_PYTHON_LINK_LIBRARIES})
+  message(STATUS "  " ${tmp})
+endforeach()
+
+message(STATUS "TORCH_PYTHON_INCLUDE_DIRECTORIES: ")
+foreach(tmp ${TORCH_PYTHON_INCLUDE_DIRECTORIES})
+  message(STATUS "  " ${tmp})
+endforeach()
+
 
 target_link_libraries(torch_python PRIVATE torch_library ${TORCH_PYTHON_LINK_LIBRARIES})
 

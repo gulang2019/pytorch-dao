@@ -38,7 +38,9 @@ from torchgen.model import (
 from torchgen.selective_build.selector import SelectiveBuilder
 from torchgen.utils import assert_never, mapMaybe, Target
 
-
+import os 
+USE_DAO = os.getenv("USE_DAO", "0") == "1"
+tensor_types = set()
 def gen_registration_headers(
     backend_index: BackendIndex,
     per_operator_headers: bool,
@@ -56,6 +58,10 @@ def gen_registration_headers(
             headers.append("#include <ATen/hip/EmptyTensor.h>")
         else:
             headers.append("#include <ATen/cuda/EmptyTensor.h>")
+            if USE_DAO: 
+                headers.append("#include <DAO.h>")
+                headers.append("#include <functional>")
+            
     elif backend_index.dispatch_key == DispatchKey.MPS:
         headers.append("#include <ATen/mps/EmptyTensor.h>")
     elif per_operator_headers:
@@ -67,6 +73,8 @@ def gen_registration_headers(
         ]
     else:
         headers.append("#include <ATen/Functions.h>")
+    
+    
 
     return headers
 
@@ -830,7 +838,87 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                         f.device_check, list(device_check_args), sig.name()
                     )
                 )
+            if self.backend_index.dispatch_key == DispatchKey.CUDA:
+                if USE_DAO\
+                    and k is SchemaKind.functional\
+                    and not self.g.out.precomputed\
+                    and self.backend_index.dispatch_key\
+                    != DispatchKey.CompositeExplicitAutogradNonFunctional:
+                    sig_body.append(f'std::shared_ptr<{class_name}> op = std::make_shared<{class_name}>();') 
+                    meta_exprs = ", ".join(
+                        e.expr
+                        for e in translate(
+                            context, structured.meta_arguments(self.g), method=False
+                        )
+                    )
+                    
+                    sig_body.append(f"op->meta({meta_exprs});")
+                    
+                    out_args = structured.out_arguments(self.g)
+                    for i, out_arg in enumerate(out_args):
+                        assert ConstRefCType(BaseCType(tensorT)) == out_arg.nctype.type
+                        
+                        expr = f"op->outputs_[{i}]"
 
+                        context.append(
+                            Expr(
+                                expr=expr,
+                                # TODO: Stop hardcoding that the output type is a Tensor.  Note
+                                # that for the codegen here this is fine because outputs_ is
+                                # hardcoded to be tensor already
+                                type=NamedCType(
+                                    out_arg.nctype.name, MutRefCType(BaseCType(tensorT))
+                                ),
+                            )
+                        )
+                    impl_exprs = ", ".join(
+                        e.expr
+                        for e in translate(
+                            context, structured.impl_arguments(self.g), method=False
+                        )
+                    )
+                    
+                    for arg in sig.arguments():
+                        if arg.type not in tensor_types:
+                            tensor_types.add(arg.type)
+                            print ("NEW Tensor Type", arg.type)
+                    
+                    input_tensor_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const at::Tensor &', sig.arguments())])
+                    optional_input_tensor_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const c10::optional<at::Tensor> &', sig.arguments())])
+                    output_tensor_exprs = ','.join([f"op->outputs_[{i}]" for i in range(len(out_args))])
+                    
+                    sig_body.append('auto kernel_impl = [&](){')
+                    sig_body.append(f'op->impl({impl_exprs});')
+                    sig_body.append('};')
+                    sig_body.append(f'auto kernel = DAO::Kernel().set_impl(kernel_impl).set_outputs({output_tensor_exprs}).set_inputs({input_tensor_exprs}).set_optional_inputs({optional_input_tensor_exprs});')
+                    sig_body.append(f'DAO::push_kernel(std::move(kernel));')
+                    
+                    if len(f.func.returns) == 1:
+                        ret_expr = "std::move(op->outputs_[0])"  # small optimization
+                    else:
+                        moved = ", ".join(
+                            f"std::move(op->outputs_[{i}])"
+                            for i in range(len(f.func.returns))
+                        )
+                        ret_expr = f"std::make_tuple({moved})"
+                    sig_body.append(f"return {ret_expr};")
+                    sig_body_str = "\n".join(sig_body)
+                    return f"""\
+{self.gen_class(
+f, k,
+class_name=class_name,
+parent_class=parent_class,
+generate_super=self.g.out.structured_inherits is not None
+)}
+
+{sig.defn()} {{
+{sig_body_str}
+}}
+"""
+                
+                else: 
+                    sig_body.append(f"std::cout<<\"{class_name}\"<< \"executed without DAO\"<<std::endl;")
+            
             if k is SchemaKind.functional:
                 sig_body.append(f"{class_name} op;")
             elif k is SchemaKind.inplace:

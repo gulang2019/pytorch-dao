@@ -163,6 +163,16 @@ if(NOT LINUX AND NOT WIN32)
   endif()
 endif()
 
+set(USE_DAO $ENV{USE_DAO} CACHE BOOL "Use DAO" FORCE)
+if (USE_DAO)
+  set(DAO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dao/include" CACHE PATH "DAO include directory" FORCE)
+  file(GLOB DAO_C_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dao/src/*.cc")
+  file(GLOB DAO_PYTHON_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dao/python/*.cc")
+  message(STATUS "DAO C++ sources: ${DAO_C_SRCS}")
+  message(STATUS "DAO C++ include: ${CMAKE_CURRENT_SOURCE_DIR}")
+  message(STATUS "DAO python srcs sources: ${DAO_C_SRCS}")
+endif()
+
 # ---[ Options.
 # Note to developers: if you add an option below, make sure you also add it to
 # cmake/Summary.cmake so that the summary prints out the option values.
