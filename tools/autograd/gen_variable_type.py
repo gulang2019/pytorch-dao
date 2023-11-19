@@ -25,6 +25,9 @@
 #     which will in turn dispatch back to VariableType for its
 #     differentiable subcomponents.
 #
+import os 
+USE_DAO = os.getenv("USE_DAO", "0") == "1"
+
 import re
 from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple, Union
 
@@ -1632,7 +1635,7 @@ def emit_body(
                                 )
                             ]
 
-                    if type_wrapper_name(f) not in DONT_ENFORCE_TENSOR_IMPL_USE_COUNT:
+                    if (not USE_DAO) and type_wrapper_name(f) not in DONT_ENFORCE_TENSOR_IMPL_USE_COUNT:
                         stmts_after_call += [
                             ENFORCE_TENSOR_IMPL_USE_COUNT_LT_OR_EQ_ONE.substitute(
                                 tensor_name=ret_name, fn_name=type_wrapper_name(f)

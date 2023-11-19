@@ -21,6 +21,7 @@
 Build the project 
 ```
 conda create -n ENV_NAME python=3.9 
+conda activate ENV_NAME
 git clone git@github.com:gulang2019/pytorch-dao.git
 cd pytorch-dao 
 pip install -r requirements.txt 
