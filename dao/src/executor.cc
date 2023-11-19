@@ -17,7 +17,8 @@ void executor_entry() {
 }
 
 void synchronize() {
-  kernel_queue.wait_until_empty() && is_running.wait_until(false);
+  kernel_queue.wait_until_empty();
+  is_running.wait_until(false);
 }
 
 } // DAO 
