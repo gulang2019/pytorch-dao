@@ -49,3 +49,9 @@ PYBIND11_MODULE(dao, m) {
     m.attr("__version__") = "dev";
 #endif
 }
+/**
+import dao 
+dao.launch() # launch the executor thread
+// torch code 
+dao.sync() # synchronize the executor thread
+*/
