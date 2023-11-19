@@ -49,9 +49,13 @@ struct Kernel {
 
 static ConcurrentQueue<Kernel> kernel_queue;
 
+static MutexBool is_running; 
+
 void push_kernel(Kernel&& kernel);
 
 void executor_entry();
+
+void synchronize();
 
 } // namespace DAO 
 #endif // DAO_KERNEL_QUEUE_H_

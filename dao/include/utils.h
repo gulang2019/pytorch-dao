@@ -60,6 +60,15 @@ class ConcurrentQueue {
     cond_.notify_one();
   }
 
+  void wait_until_empty() {
+    std::unique_lock<std::mutex> mlock(mutex_);
+    while (!queue_.empty()) {
+      cond_.wait(mlock);
+    }
+    mlock.unlock();
+    cond_.notify_one();
+  }
+
   void push(const T& item) {
     std::cout << "push" << std::endl;
     std::unique_lock<std::mutex> mlock(mutex_);
@@ -89,7 +98,37 @@ class ConcurrentQueue {
   std::queue<T> queue_;
   std::mutex mutex_;
   std::condition_variable cond_;
-  const static unsigned int BUFFER_SIZE = 10;
+  const static unsigned int BUFFER_SIZE = 1000;
+};
+
+class MutexBool {
+public: 
+  void set() {
+    std::lock_guard<std::mutex> mlock(mutex_);    
+    val_ = true;
+    cond_.notify_one(); 
+  }
+  void unset() {
+    std::lock_guard<std::mutex> mlock(mutex_);
+    val_ = false; 
+    cond_.notify_one();
+  }
+  void wait_until(bool val) {
+    std::unique_lock<std::mutex> mlock(mutex_);
+    while (val_ != val) {
+      cond_.wait(mlock);
+    }
+    mlock.unlock();
+    cond_.notify_one();
+  }
+  bool peek() {
+    std::lock_guard<std::mutex> mlock(mutex_);
+    return val_;
+  }
+private: 
+  std::condition_variable cond_;
+  std::mutex mutex_; 
+  bool val_ = false;
 };
 
 } // namespace DAO 

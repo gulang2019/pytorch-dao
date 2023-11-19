@@ -1,4 +1,24 @@
-Building the project 
+## DAO 
+
+### Overall system design 
+
+![image](./system%20design.png)
+
+### Task List 
+
+- [] Run GPT-2 training; 
+- [] Design memory allocator; 
+- [] Develop memory allocator; 
+- [] Develop memory prefetcher; 
+
+### Code structure
+- include: headers
+- python: python plugin of DAO  
+- test: c test of DAO
+- testing: python test of DAO
+
+### Build
+Build the project 
 ```
 conda create -n ENV_NAME python=3.9 
 git clone git@github.com:gulang2019/pytorch-dao.git
@@ -17,11 +37,24 @@ USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CC=/usr/bin/gcc USE_FLASH_ATTE
 
 Testing 
 ```
-python -c "import torch; a = torch.Tensor([1,2,3], device='cuda'); b = a+a; print(b)" 
+python -c "import torch; c; b = a+a; print(b)" 
 ```
 
-Trouble shooting
-import torch error
+### Trouble shooting
+- ImportError: /home/siyuanch/.conda/envs/dao/bin/../lib/libstdc++.so.6: version `GLIBCXX_3.4.30` not found when `import torch` 
 ```
 conda install -c conda-forge gcc=12.1.0
 ``` 
+- 'cc1plus' not found when building the torch
+```
+conda uninstall gcc
+``` 
+
+Test scripts for DAO 
+
+```
+cd dao 
+mkdir build && cd build 
+cmake ..
+ctest --test-dir test
+```
