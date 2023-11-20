@@ -18,7 +18,7 @@ void sync() {
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(dao, m) {
+PYBIND11_MODULE(pt_dao, m) {
     m.doc() = R"pbdoc(
         DAO
         -----------------------
