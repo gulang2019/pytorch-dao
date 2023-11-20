@@ -1,22 +1,26 @@
 #include <gtest/gtest.h> 
-#include <kernel-queue.h> 
-#include <executor.h> 
+#include <DAO/DAO.h>
 
 TEST(TestKernel, TestKernelQueue) {
-    std::cout << "run test" << std::endl;
     auto producer_op = []() { 
         DAO::Kernel kernel; 
-        kernel.op = []() { std::cout << "hello world" << std::endl; }; 
-        DAO::kernel_queue.push(kernel);
+        kernel.set_impl([]() { std::cout << "hello world" << std::endl; });
+        DAO::push_kernel(std::move(kernel));
     };
 
     std::thread producer(producer_op);
-    std::thread consumer(DAO::executor_entry, std::ref(DAO::kernel_queue));
+    DAO_INFO("launching executor");
+    DAO::executor::launch();
+    DAO_INFO("joining producer");
     producer.join();
-    consumer.join(); 
+    DAO_INFO("producer joined");
+    sleep(1);
+    DAO_INFO("stopping");
+    DAO::executor::sync();
 }
 
 int main(int argc, char** argv) {
+    DAO::verbose = 1;
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS(); 
 }

@@ -1,10 +1,11 @@
 #ifndef DAO_EXECUTOR_H_
 #define DAO_EXECUTOR_H_
 
-#include "kernel-queue.h"
+#include <DAO/generator.h>
+#include <DAO/utils.h>
 
 namespace DAO {
-
+namespace executor {
 class Executor {
 public: 
     Executor(ConcurrentQueue<Kernel>& kernel_queue) : kernel_queue_(kernel_queue) {}
@@ -13,7 +14,11 @@ private:
     ConcurrentQueue<Kernel>& kernel_queue_;
 };
 
-void executor_entry(ConcurrentQueue<Kernel>& kernel_queue); 
+void launch();
+// void join();
+void sync();
+// void stop();
+} // executor 
 
 } // DAO 
 

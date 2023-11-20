@@ -1,6 +1,8 @@
 #include <thread>
 #include <gtest/gtest.h> 
-#include <utils.h>
+
+#include <DAO/utils.h>
+#include <DAO/DAO.h>
 
 namespace DAO {
 namespace testing {
@@ -52,6 +54,7 @@ TEST(MutexBoolTest, WaitUntilUnset) {
 }}  // namespace dao::testing
 
 int main(int argc, char** argv) {
+    DAO::verbose = 1;
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS(); 
 }

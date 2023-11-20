@@ -6,9 +6,7 @@
 #include <functional> 
 
 #include <ATen/Tensor.h> 
-#include <c10/util/Optional.h>
-
-#include "utils.h"
+// #include <c10/util/Optional.h>
 
 namespace DAO {
 
@@ -44,18 +42,8 @@ struct Kernel {
     (optional(args), ...);
     return (*this);
   }
-
 }; 
 
-static ConcurrentQueue<Kernel> kernel_queue;
-
-static MutexBool is_running; 
-
 void push_kernel(Kernel&& kernel);
-
-void executor_entry();
-
-void synchronize();
-
 } // namespace DAO 
 #endif // DAO_KERNEL_QUEUE_H_

@@ -36,7 +36,6 @@ template <typename T>
 class ConcurrentQueue {
  public:
   T pop() {
-    std::cout << "pop" << std::endl;
     std::unique_lock<std::mutex> mlock(mutex_);
     while (queue_.empty()) {
       cond_.wait(mlock);
@@ -49,7 +48,6 @@ class ConcurrentQueue {
   }
 
   void pop(T& item) {
-    std::cout << "pop" << std::endl;
     std::unique_lock<std::mutex> mlock(mutex_);
     while (queue_.empty()) {
       cond_.wait(mlock);
