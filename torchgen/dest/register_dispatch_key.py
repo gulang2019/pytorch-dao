@@ -59,8 +59,7 @@ def gen_registration_headers(
         else:
             headers.append("#include <ATen/cuda/EmptyTensor.h>")
             if USE_DAO: 
-                headers.append("#include <DAO.h>")
-                headers.append("#include <functional>")
+                headers.append("#include <DAO/generator.h>")
             
     elif backend_index.dispatch_key == DispatchKey.MPS:
         headers.append("#include <ATen/mps/EmptyTensor.h>")

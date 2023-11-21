@@ -14,6 +14,10 @@
 
 namespace DAO {
 
+#define DAO_EXPORT __attribute__((__visibility__("default")))
+#define DAO_HIDDEN __attribute__((__visibility__("hidden")))
+#define DAO_API DAO_EXPORT
+
 extern int verbose; 
 
 #define PRINT_MSG(...) do{printf("%s:%d ", __FILE__, __LINE__); printf(__VA_ARGS__); printf("\n");}while(0)

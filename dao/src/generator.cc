@@ -4,9 +4,10 @@
 
 namespace DAO {
 
-ConcurrentQueue<Kernel> kernel_queue;
+DAO_API ConcurrentQueue<Kernel> kernel_queue;
 
-void push_kernel(Kernel&& kernel) {
+void push_kernel(Kernel&& kernel)
+{
   if (DAO::verbose) {
     printf("generator: push_kernel %p\n", &kernel_queue);
   }   

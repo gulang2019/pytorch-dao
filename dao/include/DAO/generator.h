@@ -8,6 +8,8 @@
 #include <ATen/Tensor.h> 
 // #include <c10/util/Optional.h>
 
+#include <DAO/globals.h>
+
 namespace DAO {
 
 struct Kernel {
@@ -45,5 +47,6 @@ struct Kernel {
 }; 
 
 void push_kernel(Kernel&& kernel);
+
 } // namespace DAO 
 #endif // DAO_KERNEL_QUEUE_H_

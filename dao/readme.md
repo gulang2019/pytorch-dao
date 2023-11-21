@@ -33,7 +33,7 @@ Developing
 # clean 
 python setup.py clean
 # incremental build 
-USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CC=/usr/bin/gcc USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
+USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CC=/usr/bin/gcc CXX=/usr/bin/g++ USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
 ```
 
 Testing 
@@ -43,9 +43,16 @@ python -c "import torch; c; b = a+a; print(b)"
 
 ### Trouble shooting
 - ImportError: /home/siyuanch/.conda/envs/dao/bin/../lib/libstdc++.so.6: version `GLIBCXX_3.4.30` not found when `import torch` 
+
+This is because we use host gcc/g++ but conda libstdc++ ...
+
+We can walk around this by modifying the `LD_LIBRARY_PATH` to instruct the compiler find the correct libstdc++.so
 ```
-conda install -c conda-forge gcc=12.1.0
-``` 
+export LD_LIBRARY_PATH=
+```
+After that, your cmake may not find the `g++` or `gcc` when doing compilation. We can solve this by setting `CC=/usr/bin/gcc CXX=/usr/bin/g++ cmake ..` with cmake.
+
+
 - 'cc1plus' not found when building the torch
 ```
 conda uninstall gcc
@@ -57,5 +64,6 @@ Test scripts for DAO
 cd dao 
 mkdir build && cd build 
 cmake ..
+make
 ctest --test-dir test
 ```

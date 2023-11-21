@@ -32,8 +32,10 @@ namespace DAO {
         {"launch", launch_wrapper, METH_NOARGS, nullptr},
         // {"join", join_wrapper, METH_NOARGS, nullptr},
         {"sync", sync_wrapper, METH_NOARGS, nullptr},
-        {"verbose", verbose_wrapper, METH_VARARGS, nullptr}
+        {"verbose", verbose_wrapper, METH_VARARGS, nullptr},
+        {nullptr, nullptr, 0, nullptr}
     };
+    
     PyMethodDef* python_functions() {
         return methods;
     }

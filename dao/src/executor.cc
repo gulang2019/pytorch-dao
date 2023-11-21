@@ -2,7 +2,7 @@
 
 #include <DAO/executor.h>
 #include <DAO/generator.h>
-#include <DAO/DAO.h>
+#include <DAO/globals.h>
 
 namespace DAO {
 
