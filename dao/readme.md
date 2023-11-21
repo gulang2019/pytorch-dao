@@ -25,7 +25,19 @@ conda activate ENV_NAME
 git clone git@github.com:gulang2019/pytorch-dao.git
 cd pytorch-dao 
 pip install -r requirements.txt 
-USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CC=/usr/bin/gcc USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
+USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CXX=/usr/bin/g++ CC=/usr/bin/gcc USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
+```
+
+Build python frontend 
+```
+cd dao 
+python setup.py develop
+```
+
+Test
+```
+cd dao/testing 
+python ./add.py
 ```
 
 Developing
