@@ -877,19 +877,27 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                         )
                     )
                     
+                    # for e in structured.impl_arguments(self.g):
+                    #     if e.type not in tensor_types:
+                    #         tensor_types.add(e.type)
+                    #         print ("NEW Input Type", e.type)
+                    
                     for arg in sig.arguments():
                         if arg.type not in tensor_types:
                             tensor_types.add(arg.type)
-                            print ("NEW Tensor Type", arg.type)
+                            print ("NEW Arg Type", arg.type)
                     
                     input_tensor_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const at::Tensor &', sig.arguments())])
                     optional_input_tensor_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const c10::optional<at::Tensor> &', sig.arguments())])
+                    input_scalar_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const at::Scalar &', sig.arguments())])
+                    optional_input_scalar_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const c10::optional<at::Scalar> &', sig.arguments())])
+                    # input_scalar_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const at::Scalar &', sig.arguments())])
                     output_tensor_exprs = ','.join([f"op->outputs_[{i}]" for i in range(len(out_args))])
                     
-                    sig_body.append('auto kernel_impl = [&](){')
+                    sig_body.append('auto kernel_impl = [=](){')
                     sig_body.append(f'op->impl({impl_exprs});')
                     sig_body.append('};')
-                    sig_body.append(f'auto kernel = DAO::Kernel().set_impl(kernel_impl).set_outputs({output_tensor_exprs}).set_inputs({input_tensor_exprs}).set_optional_inputs({optional_input_tensor_exprs});')
+                    sig_body.append(f'auto kernel = DAO::Kernel().set_impl(kernel_impl).set_outputs({output_tensor_exprs}).set_inputs({input_tensor_exprs}).set_optional_inputs({optional_input_tensor_exprs}).set_scalars({input_scalar_exprs}).set_optional_scalars({optional_input_scalar_exprs});')
                     sig_body.append(f'DAO::push_kernel(std::move(kernel));')
                     
                     if len(f.func.returns) == 1:
