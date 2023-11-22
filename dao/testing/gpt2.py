@@ -1,5 +1,5 @@
 import torch as t
-import torch._C as dao
+import dao 
 import torch.nn as nn
 import torch.nn.functional as F
 from copy import deepcopy
@@ -24,7 +24,6 @@ def test_1d_model(dim=3):
     dao_pred = dao_model(a)
     # dao_loss = loss_fn(dao_pred, actual)
     dao.sync()
-    sleep(1)
     print(f"DAO: pred {dao_pred}; loss {None}")
 
 

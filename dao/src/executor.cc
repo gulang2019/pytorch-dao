@@ -26,20 +26,15 @@ void Executor::run() {
       DAO_INFO("Executor::run(): stop kernel");
       break;
     }
-    std::cout << "input tensors: ";
+    DAO_INFO("Executor::run(): run kernel %s", kernel._name.c_str());
     for (auto& tensor : kernel._inputs) {
-      std::cout << tensor.toString() << tensor.sizes() << tensor.use_count() << ", ";
+      std::cout << "Before Execution " << tensor.name() << tensor.toString() << tensor.sizes() << tensor.use_count() << std::endl;
     }
-    std::cout << std::endl;
-    // std::cout << "input scalars: ";
-    // for (auto& scalar : kernel._scalars) {
-    //   std::cout << scalar.toString() << ", ";
-    // }
-    std::cout << std::endl;
-
-    DAO_INFO("Executor::run(): run kernel");
+    for (auto& tensor : kernel._outputs) {
+      std::cout << "Before Execution " << tensor.name() << tensor.toString() << tensor.sizes() << tensor.use_count() << std::endl;
+    }
     kernel._impl(); 
-    DAO_INFO("Executor::run(): update kernel counter");
+    DAO_INFO("Executor::run(): run kernel %s done", kernel._name.c_str());
     kernel_counter.decrement();
   }
 }

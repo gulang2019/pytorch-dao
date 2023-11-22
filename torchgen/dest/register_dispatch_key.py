@@ -870,12 +870,17 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                                 ),
                             )
                         )
+                    
+                    capture_map = {f'op->outputs_[{i}]': f'out{i}' for i in range(len(out_args))}
+                    captures = ','.join([f'out{i}=op->outputs_[{i}]' for i in range(len(out_args))])
                     impl_exprs = ", ".join(
-                        e.expr
+                        e.expr if e.expr not in capture_map else capture_map[e.expr]
                         for e in translate(
                             context, structured.impl_arguments(self.g), method=False
                         )
                     )
+                    
+                    # sig_body.append(f"std::cout<< __FILE__ << \":\" << __LINE__ << \"{class_name}\"<< \" executed\"<<std::endl;")
                     
                     # for e in structured.impl_arguments(self.g):
                     #     if e.type not in tensor_types:
@@ -894,10 +899,20 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                     # input_scalar_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const at::Scalar &', sig.arguments())])
                     output_tensor_exprs = ','.join([f"op->outputs_[{i}]" for i in range(len(out_args))])
                     
-                    sig_body.append('auto kernel_impl = [=](){')
+                    # print_exprs = [f'std::cout << \"{x.name}\" << {x.name}.name() << {x.name}.toString() << {x.name}.sizes() << {x.name}.use_count() << "," << std::endl;' for x in filter(lambda x: x.type == 'const at::Tensor &', sig.arguments())]
+                    output_exprs = [f'std::cout << op->outputs_[{i}].name() << op->outputs_[{i}].toString() << op->outputs_[{i}].sizes() << op->outputs_[{i}].use_count() << "," << std::endl;' for i in range(len(out_args))]
+                    # captured_exprs = [f'std::cout << out{i}.name() << out{i}.toString() << out{i}.sizes() << out{i}.use_count() << "," << std::endl;' for i in range(len(out_args))]
+                    
+                    # sig_body.append(f"std::cout<< __FILE__ << \":\" << __LINE__ << \"{class_name}\"<< \" META\"<<std::endl;")
+                    # sig_body.extend(print_exprs)
+                    sig_body.extend(output_exprs)
+                    sig_body.append(f'auto kernel_impl = [=,{captures}]()' + '{')
+                    # sig_body.append(f"std::cout<< __FILE__ << \":\" << __LINE__ << \"{class_name}\"<< \" IMPL\"<<std::endl;")
+                    # sig_body.extend(print_exprs)
+                    # sig_body.extend(captured_exprs)
                     sig_body.append(f'op->impl({impl_exprs});')
                     sig_body.append('};')
-                    sig_body.append(f'auto kernel = DAO::Kernel().set_impl(kernel_impl).set_outputs({output_tensor_exprs}).set_inputs({input_tensor_exprs}).set_optional_inputs({optional_input_tensor_exprs}).set_scalars({input_scalar_exprs}).set_optional_scalars({optional_input_scalar_exprs});')
+                    sig_body.append(f'auto kernel = DAO::Kernel().set_impl(kernel_impl).set_outputs({output_tensor_exprs}).set_inputs({input_tensor_exprs}).set_optional_inputs({optional_input_tensor_exprs}).set_scalars({input_scalar_exprs}).set_optional_scalars({optional_input_scalar_exprs}).set_name(\"{class_name}\");')
                     sig_body.append(f'DAO::push_kernel(std::move(kernel));')
                     
                     if len(f.func.returns) == 1:

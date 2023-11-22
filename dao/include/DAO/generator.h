@@ -4,6 +4,7 @@
 
 #include <vector> 
 #include <functional> 
+#include <string> 
 
 #include <ATen/Tensor.h> 
 #include <ATen/Scalar.h> 
@@ -18,6 +19,7 @@ struct Kernel {
   std::vector<at::Tensor> _inputs;
   std::vector<at::Tensor> _outputs;  
   std::vector<at::Scalar> _scalars;
+  std::string _name = ""; 
   bool _stop = false; 
 
   Kernel& set_impl(std::function<void()> impl) {
@@ -72,6 +74,11 @@ struct Kernel {
 
   bool is_stop() const {
     return _stop;
+  }
+
+  Kernel& set_name(const char* name) {
+    _name = std::string(name);
+    return *this;
   }
 }; 
 
