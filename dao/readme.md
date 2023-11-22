@@ -31,7 +31,7 @@ USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CXX=/usr/bin/g++ CC=/usr/bin/g
 Build python frontend 
 ```
 cd dao 
-python setup.py develop
+python -m pip install -e . 
 ```
 
 Test

@@ -1,4 +1,4 @@
-import torch._C as dao 
+import dao
 import torch
 
 dao.verbose(1)
@@ -7,15 +7,12 @@ dao.launch()
 # device = torch.device("cuda")
 
 # Create two tensors 'a' and 'b'
-a = torch.tensor([1, 2, 3], device='cuda')
-b = torch.tensor([2,4,6], device='cuda')
+a = torch.tensor([1.0,2.0,3.0], device='cuda')
+b = torch.tensor([2.0,4.0,6.0], device='cuda')
 # Perform element-wise addition
 result = a + b
 
-import time 
-
-time.sleep(1)
-
 dao.sync()
-print(result)
+dao.stop()
+# print('result', result)
 # print(result)

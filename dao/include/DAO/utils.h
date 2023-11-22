@@ -11,7 +11,9 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <stdio.h>
 
+#include <DAO/globals.h>
 
 namespace DAO {
 // // Define a function type
@@ -68,7 +70,6 @@ class ConcurrentQueue {
   }
 
   void push(const T& item) {
-    std::cout << "push" << std::endl;
     std::unique_lock<std::mutex> mlock(mutex_);
     while (queue_.size() >= BUFFER_SIZE) {
        cond_.wait(mlock);
@@ -79,7 +80,6 @@ class ConcurrentQueue {
   }
 
   void push(T&& item) {
-    std::cout << "push" << std::endl;
     std::unique_lock<std::mutex> mlock(mutex_);
     while (queue_.size() >= BUFFER_SIZE) {
        cond_.wait(mlock);
@@ -88,10 +88,16 @@ class ConcurrentQueue {
     mlock.unlock();
     cond_.notify_one();
   }
-  ConcurrentQueue()=default;
+  
+  // is this thread safe? 
+  int size() const {
+    return queue_.size();
+  }
+
+  ConcurrentQueue(){printf("ConcurrentQueue constructor %p\n", this);};
   ConcurrentQueue(const ConcurrentQueue&) = delete;            // disable copying
   ConcurrentQueue& operator=(const ConcurrentQueue&) = delete; // disable assignment
-
+  ~ConcurrentQueue() {printf("ConcurrentQueue destructor %p\n", this);}
  private:
   std::queue<T> queue_;
   std::mutex mutex_;
@@ -99,34 +105,35 @@ class ConcurrentQueue {
   const static unsigned int BUFFER_SIZE = 1000;
 };
 
-class MutexBool {
+class ConcurrentCounter {
 public: 
-  void set() {
-    std::lock_guard<std::mutex> mlock(mutex_);    
-    val_ = true;
-    cond_.notify_one(); 
-  }
-  void unset() {
-    std::lock_guard<std::mutex> mlock(mutex_);
-    val_ = false; 
+  void increment() {
+    std::unique_lock<std::mutex> mlock(mutex_);
+    count_++;
+    mlock.unlock();
     cond_.notify_one();
   }
-  void wait_until(bool val) {
+  void decrement() {
     std::unique_lock<std::mutex> mlock(mutex_);
-    while (val_ != val) {
+    count_--;
+    mlock.unlock();
+    cond_.notify_one();
+  }
+  void wait_until_zero() {
+    std::unique_lock<std::mutex> mlock(mutex_);
+    while (count_ != 0) {
       cond_.wait(mlock);
     }
     mlock.unlock();
     cond_.notify_one();
   }
-  bool peek() {
-    std::lock_guard<std::mutex> mlock(mutex_);
-    return val_;
+  int peek() const {
+    return count_;
   }
 private: 
   std::condition_variable cond_;
   std::mutex mutex_; 
-  bool val_ = false;
+  int count_ = 0; 
 };
 
 } // namespace DAO 
