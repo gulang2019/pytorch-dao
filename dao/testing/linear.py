@@ -3,6 +3,7 @@ import torch.nn as nn
 import dao 
 
 torch.random.manual_seed(42)
+torch.set_num_threads(1)
 # Define a simple feed-forward model
 class FeedForward(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
@@ -12,9 +13,6 @@ class FeedForward(nn.Module):
 
     def forward(self, x):
         x = torch.relu(self.hidden(x))
-        dao.status()
-        dao.sync()
-        dao.status()
         x = self.output(x)
         return x
 
@@ -23,6 +21,7 @@ dao.verbose(1)
 dao.launch()
 # Create the model
 model = FeedForward(input_dim=10, hidden_dim=50, output_dim=1).cuda()
+opt = torch.optim.Adam(model.parameters(), lr=0.001)
 # import random 
 
 # Create a random tensor to represent input data
@@ -36,14 +35,24 @@ output_data = model(input_data)
 
 # Compute the MSE loss
 # loss_fn = nn.MSELoss().cuda()
+# dao.sync()
 # loss = loss_fn(output_data, target_data)
 
+opt.zero_grad()
 loss = (output_data - target_data).pow(2).mean()
-
-print('requires_grad', loss.requires_grad)
 
 dao.sync()
 
 print(f"Loss: {loss.item()}")
 
+loss.backward()
+opt.step()
+# dao.sync()
+
 dao.stop()
+x = model.hidden.weight.grad.to('cpu')
+print(x)
+
+print('requires_grad', loss.requires_grad)
+
+

@@ -4,6 +4,7 @@
 
 #include <vector> 
 #include <functional> 
+#include <optional>
 #include <string> 
 
 #include <ATen/Tensor.h> 
@@ -15,14 +16,15 @@
 namespace DAO {
 
 struct Kernel {
-  std::function<void()> _impl;
+  std::function<void(Kernel*)> _impl;
   std::vector<at::Tensor> _inputs;
   std::vector<at::Tensor> _outputs;  
   std::vector<at::Scalar> _scalars;
+  std::vector<std::vector<int64_t> > _arrays;
   std::string _name = ""; 
   bool _stop = false; 
 
-  Kernel& set_impl(std::function<void()> impl) {
+  Kernel& set_impl(std::function<void(Kernel*)> impl) {
     this->_impl = impl;
     return *this; 
   }
@@ -65,6 +67,38 @@ struct Kernel {
     };
     (optional(args), ...);
     return *this;
+  }
+
+  int set_optional_array(std::optional<std::vector<int64_t>> array) {
+    if (array.has_value()){
+      _arrays.push_back(array.value());
+      return _arrays.size()-1;
+    } 
+    return -1;
+  }
+
+  int set_optional_array(at::OptionalIntArrayRef ref) {
+    if (ref.has_value()) {
+      _arrays.push_back(ref.value().vec());
+      return _arrays.size()-1;
+    }
+    return -1; 
+  }
+
+  at::OptionalIntArrayRef get_optional_array(int idx) {
+    if (idx == -1) return c10::nullopt;
+    assert(idx >= 0 && idx < (int)_arrays.size());
+    return _arrays[idx];
+  }
+
+  int set_array(at::IntArrayRef ref) {
+    _arrays.push_back(ref.vec());
+    return _arrays.size()-1;
+  }
+
+  at::IntArrayRef get_array(int idx) {
+    assert(idx >= 0 && idx < (int)_arrays.size());
+    return _arrays[idx];
   }
 
   Kernel& set_stop() {

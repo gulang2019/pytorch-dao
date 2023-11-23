@@ -15,7 +15,9 @@ namespace DAO {
     //     return NULL;
     // }
     static PyObject* sync_wrapper(PyObject* _unused, PyObject* arg) {
+        Py_BEGIN_ALLOW_THREADS
         DAO::executor::sync();
+        Py_END_ALLOW_THREADS
         return _unused;
     }
 
@@ -33,7 +35,10 @@ namespace DAO {
     }
 
     static PyObject* stop_wrapper(PyObject* _unused, PyObject* arg) {
+        Py_BEGIN_ALLOW_THREADS 
         DAO::executor::stop();
+        DAO::executor::sync(); 
+        Py_END_ALLOW_THREADS 
         return _unused;
     }
 

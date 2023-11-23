@@ -17,25 +17,20 @@ namespace executor {
 static std::thread executor_thread;
 
 void Executor::run() {
-  DAO_INFO("Executor: kernel_counter(%p) = %d, %d in kernel_queue(%p)", 
-    &kernel_counter, kernel_counter.peek(), kernel_queue.size(), &kernel_queue);
   while (true) {
     DAO_INFO("Executor::run(): popping kernel!");
+    status();
     Kernel kernel = kernel_queue_.pop();
     if (kernel.is_stop()) {
       DAO_INFO("Executor::run(): stop kernel");
       break;
     }
     DAO_INFO("Executor::run(): run kernel %s", kernel._name.c_str());
-    for (auto& tensor : kernel._inputs) {
-      std::cout << "Before Execution " << tensor.name() << tensor.toString() << tensor.sizes() << tensor.use_count() << std::endl;
-    }
-    for (auto& tensor : kernel._outputs) {
-      std::cout << "Before Execution " << tensor.name() << tensor.toString() << tensor.sizes() << tensor.use_count() << std::endl;
-    }
-    kernel._impl(); 
+    kernel._impl(&kernel); 
     DAO_INFO("Executor::run(): run kernel %s done", kernel._name.c_str());
+    status();
     kernel_counter.decrement();
+    // DAO_INFO("Executor::run(): decrement %s done", kernel._name.c_str());
   }
 }
 
@@ -45,6 +40,8 @@ void status() {
 }
 
 void sync() {
+  DAO_INFO("DAO::sync");
+  status();
   kernel_counter.wait_until_zero();
 }
 
@@ -65,6 +62,8 @@ void launch(){
 }
 
 void stop() {
+  DAO_INFO("DAO::stop");
+  status();
   Kernel kernel;
   kernel.set_stop();
   kernel_queue.push(std::move(kernel));

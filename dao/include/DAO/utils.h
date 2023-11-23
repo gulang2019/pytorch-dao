@@ -52,6 +52,7 @@ class ConcurrentQueue {
   void pop(T& item) {
     std::unique_lock<std::mutex> mlock(mutex_);
     while (queue_.empty()) {
+      DAO_INFO("ConcurrentQueue:pop(): queue is empty, wait");
       cond_.wait(mlock);
     }
     item = queue_.front();
@@ -72,6 +73,7 @@ class ConcurrentQueue {
   void push(const T& item) {
     std::unique_lock<std::mutex> mlock(mutex_);
     while (queue_.size() >= BUFFER_SIZE) {
+      DAO_INFO("ConcurrentQueue::push(): queue is full, wait");
        cond_.wait(mlock);
     }
     queue_.push(item);
@@ -82,6 +84,7 @@ class ConcurrentQueue {
   void push(T&& item) {
     std::unique_lock<std::mutex> mlock(mutex_);
     while (queue_.size() >= BUFFER_SIZE) {
+      DAO_INFO("ConcurrentQueue::push(): queue is full, wait");
        cond_.wait(mlock);
     }
     queue_.push(item);
@@ -94,10 +97,10 @@ class ConcurrentQueue {
     return queue_.size();
   }
 
-  ConcurrentQueue(){printf("ConcurrentQueue constructor %p\n", this);};
+  ConcurrentQueue() = default;
   ConcurrentQueue(const ConcurrentQueue&) = delete;            // disable copying
   ConcurrentQueue& operator=(const ConcurrentQueue&) = delete; // disable assignment
-  ~ConcurrentQueue() {printf("ConcurrentQueue destructor %p\n", this);}
+  ~ConcurrentQueue() = default;
  private:
   std::queue<T> queue_;
   std::mutex mutex_;
@@ -108,13 +111,17 @@ class ConcurrentQueue {
 class ConcurrentCounter {
 public: 
   void increment() {
+    DAO_INFO("Wait Incrementing");
     std::unique_lock<std::mutex> mlock(mutex_);
+    DAO_INFO("Incrementing counter %d", count_);
     count_++;
     mlock.unlock();
     cond_.notify_one();
   }
   void decrement() {
+    DAO_INFO("Wait Decrement");
     std::unique_lock<std::mutex> mlock(mutex_);
+    DAO_INFO("Decrementing counter %d", count_);
     count_--;
     mlock.unlock();
     cond_.notify_one();
@@ -122,6 +129,7 @@ public:
   void wait_until_zero() {
     std::unique_lock<std::mutex> mlock(mutex_);
     while (count_ != 0) {
+      DAO_INFO("Wait until zero %d", count_);
       cond_.wait(mlock);
     }
     mlock.unlock();
