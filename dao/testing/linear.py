@@ -35,7 +35,6 @@ target_data = torch.randn(32, 1).cuda()  # batch size = 32, output dimension = 1
 
 # Forward pass through the model
 output_data = model(input_data)
-output_cpu = output_data.cpu()
 ref_output = ref_model(input_data.cpu())
 
 # Compute the MSE loss
@@ -48,6 +47,7 @@ loss = (output_data - target_data).pow(2).mean()
 
 dao.sync()
 
+output_cpu = output_data.cpu()
 err = np.linalg.norm(output_cpu.numpy(force=True) - ref_output.numpy(force=True))
 assert err < 1e-1, f"Inference result mismatch: {output_cpu} != {ref_output} (GT"
 print(f"Loss: {loss.item()}")
