@@ -10,7 +10,7 @@ import os
 import pickle as pkl
 import random 
 import time 
-from ds_config import ds_config
+# from ds_config import ds_config
 # import deepspeed 
 import dao
 
@@ -434,7 +434,7 @@ parser.add_argument('--use_lora', action='store_true')
 # parser = deepspeed.add_config_arguments(parser)
 
 if __name__ == '__main__':
-    dao.verbose(1)
+    dao.verbose(0)
     dao.launch()
     # for model_size in ['124M', '355M', '774M', '1558M']:
     # for model_size in ['355M']:
