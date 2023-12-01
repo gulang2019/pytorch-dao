@@ -1,39 +1,53 @@
 #include <thread>
+#include <stdio.h>
 
 #include <DAO/executor.h>
 #include <DAO/generator.h>
-#include <DAO/DAO.h>
+#include <DAO/globals.h>
+#include <DAO/utils.h>
 
 namespace DAO {
 
 extern ConcurrentQueue<Kernel> kernel_queue;
+extern ConcurrentCounter kernel_counter;
 
 namespace executor {
 
 static std::thread executor_thread;
-static MutexBool is_running; 
 
 void Executor::run() {
   while (true) {
-    DAO_INFO("Executor::run(): popping kernel!");
+    DAO_INFO("Executor::run(): %d in kernel_queue", kernel_queue.size());
     Kernel kernel = kernel_queue_.pop();
-    DAO_INFO("Executor::run(): setting is_running");
-    is_running.set();
-    DAO_INFO("Executor::run(): run kernel");
-    kernel._impl(); 
-    DAO_INFO("Executor::run(): unsetting is_running");
-    is_running.unset();
-    DAO_INFO("Executor::run(): unsetting finished!");
+    if (kernel.is_stop()) {
+      DAO_INFO("Executor::run(): stop kernel");
+      break;
+    }
+    kernel._impl(&kernel); 
+    status();
+    kernel_counter.decrement();
+    // DAO_INFO("Executor::run(): decrement %s done", kernel._name.c_str());
   }
 }
 
+void status() {
+  DAO_INFO("status: kernel_counter(%p) = %d, %d in kernel_queue(%p)", 
+    &kernel_counter, kernel_counter.peek(), kernel_queue.size(), &kernel_queue);
+}
+
 void sync() {
-  DAO_INFO("sync");
-  kernel_queue.wait_until_empty();
-  is_running.wait_until(false);
+  DAO_INFO("DAO::sync");
+  status();
+  kernel_counter.wait_until_zero();
 }
 
 void launch(){
+  static bool launched = false;
+  if (launched) {
+    DAO_WARNING("executor has already been launched");
+    return;
+  }
+  launched = true;
   DAO_INFO("launching kernel_queue address = %p", &kernel_queue);
   auto _entry = [](){
     Executor executor(kernel_queue); 
@@ -41,6 +55,14 @@ void launch(){
   };
   executor_thread = std::thread(_entry);
   executor_thread.detach();
+}
+
+void stop() {
+  DAO_INFO("DAO::stop");
+  status();
+  Kernel kernel;
+  kernel.set_stop();
+  kernel_queue.push(std::move(kernel));
 }
 
 // void join(){

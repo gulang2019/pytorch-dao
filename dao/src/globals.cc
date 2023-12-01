@@ -1,5 +1,5 @@
 #include <DAO/globals.h>
 
 namespace DAO {
-int verbose = 0; 
+DAO_API int verbose = 0; 
 } //DAO

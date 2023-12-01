@@ -165,12 +165,18 @@ endif()
 
 set(USE_DAO $ENV{USE_DAO} CACHE BOOL "Use DAO" FORCE)
 if (USE_DAO)
+  set(DAO_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dao/src" CACHE PATH "DAO source directory" FORCE)
   set(DAO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dao/include" CACHE PATH "DAO include directory" FORCE)
   file(GLOB DAO_C_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dao/src/*.cc")
-  file(GLOB DAO_PYTHON_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dao/python/*.cc")
-  message(STATUS "DAO C++ sources: ${DAO_C_SRCS}")
-  message(STATUS "DAO C++ include: ${CMAKE_CURRENT_SOURCE_DIR}")
-  message(STATUS "DAO python srcs sources: ${DAO_C_SRCS}")
+  set(DAO_EXECUTOR_SRCS ${DAO_SRC_DIR}/executor.cc)
+  set(DAO_GENERATOR_SRCS 
+    ${DAO_SRC_DIR}/generator.cc
+    ${DAO_SRC_DIR}/globals.cc
+  )
+  # file(GLOB DAO_PYTHON_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dao/python/*.cc")\
+  message(STATUS "DAO C++ include: ${DAO_INCLUDE_DIR}")
+  message(STATUS "DAO_EXECUTOR_SRCS sources: ${DAO_EXECUTOR_SRCS}")
+  message(STATUS "DAO_GENERATOR_SRCS sources: ${DAO_GENERATOR_SRCS}")
 endif()
 
 # ---[ Options.

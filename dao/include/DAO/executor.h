@@ -16,7 +16,9 @@ private:
 
 void launch();
 // void join();
+void status();
 void sync();
+void stop();
 // void stop();
 } // executor 
 
