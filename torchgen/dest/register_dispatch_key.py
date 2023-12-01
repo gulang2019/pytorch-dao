@@ -40,7 +40,7 @@ from torchgen.utils import assert_never, mapMaybe, Target
 
 import os 
 USE_DAO = os.getenv("USE_DAO", "0") == "1"
-tensor_types = set()
+arg_types = set()
 def gen_registration_headers(
     backend_index: BackendIndex,
     per_operator_headers: bool,
@@ -59,8 +59,7 @@ def gen_registration_headers(
         else:
             headers.append("#include <ATen/cuda/EmptyTensor.h>")
             if USE_DAO: 
-                headers.append("#include <DAO.h>")
-                headers.append("#include <functional>")
+                headers.append("#include <DAO/generator.h>")
             
     elif backend_index.dispatch_key == DispatchKey.MPS:
         headers.append("#include <ATen/mps/EmptyTensor.h>")
@@ -858,7 +857,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                     for i, out_arg in enumerate(out_args):
                         assert ConstRefCType(BaseCType(tensorT)) == out_arg.nctype.type
                         
-                        expr = f"op->outputs_[{i}]"
+                        expr = f"out{i}"
 
                         context.append(
                             Expr(
@@ -871,6 +870,7 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                                 ),
                             )
                         )
+                    
                     impl_exprs = ", ".join(
                         e.expr
                         for e in translate(
@@ -878,20 +878,58 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                         )
                     )
                     
-                    for arg in sig.arguments():
-                        if arg.type not in tensor_types:
-                            tensor_types.add(arg.type)
-                            print ("NEW Tensor Type", arg.type)
+                    sig_body.append(f"DAO::Kernel kernel;")
+                    sig_body.append(f"kernel.set_name(\"{class_name}\");")
                     
-                    input_tensor_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const at::Tensor &', sig.arguments())])
-                    optional_input_tensor_exprs = ','.join([x.name for x in filter(lambda x: x.type == 'const c10::optional<at::Tensor> &', sig.arguments())])
-                    output_tensor_exprs = ','.join([f"op->outputs_[{i}]" for i in range(len(out_args))])
+                    impl_body = []
+                    captures = ['op']
+                    idx = 0 
+                    for x in sig.arguments():
+                        if x.type == 'const at::Tensor &': 
+                            sig_body.append(f'kernel.set_inputs({x.name});') 
+                            captures.append(f'{x.name}')
+                        elif x.type == 'const at::Scalar &':
+                            sig_body.append(f'kernel.set_scalars({x.name});') 
+                            captures.append(f'{x.name}')
+                        elif x.type == 'const c10::optional<at::Tensor> &':
+                            sig_body.append(f'kernel.set_optional_inputs({x.name});') 
+                            captures.append(f'{x.name}')
+                        elif x.type == 'const c10::optional<at::Scalar> &':
+                            sig_body.append(f'kernel.set_optional_scalars({x.name});') 
+                            captures.append(f'{x.name}')
+                        elif x.type == 'at::OptionalIntArrayRef':
+                            sig_body.append(f'int x{idx} = kernel.set_optional_array({x.name});') 
+                            impl_body.append(f'auto {x.name} = kernel->get_optional_array(x{idx});')
+                            captures.append(f'x{idx}')
+                            idx += 1 
+                        elif x.type == 'at::IntArrayRef':
+                            sig_body.append(f'int x{idx} = kernel.set_array({x.name});') 
+                            impl_body.append(f'auto {x.name} = kernel->get_array(x{idx});')
+                            captures.append(f'x{idx}')
+                            idx += 1 
+                        elif x.type == 'int64_t' or x.type == 'bool' or x.type == 'double':
+                            captures.append(f'{x.name}')
+                        else:
+                            captures.append(f'{x.name}')
+                            
+                    for i in range(len(out_args)):
+                        captures.append(f'out{i}=op->outputs_[{i}]')
+                        sig_body.append(f'kernel.set_outputs(op->outputs_[{i}]);')
                     
-                    sig_body.append('auto kernel_impl = [&](){')
+                    capture_expr = ','.join(captures)
+                    sig_body.append(f'kernel.set_impl([{capture_expr}](DAO::Kernel* kernel)' + '{')
+                    sig_body.extend(impl_body)
                     sig_body.append(f'op->impl({impl_exprs});')
-                    sig_body.append('};')
-                    sig_body.append(f'auto kernel = DAO::Kernel().set_impl(kernel_impl).set_outputs({output_tensor_exprs}).set_inputs({input_tensor_exprs}).set_optional_inputs({optional_input_tensor_exprs});')
+                    sig_body.append('});')
                     sig_body.append(f'DAO::push_kernel(std::move(kernel));')
+                    
+                        
+                    # sig_body.append(f"std::cout<< __FILE__ << \":\" << __LINE__ << \"{class_name}\"<< \" executed\"<<std::endl;")
+                    
+                    for arg in sig.arguments():
+                        if arg.type not in arg_types:
+                            arg_types.add(arg.type)
+                            print ("NEW Arg Type", arg.type)
                     
                     if len(f.func.returns) == 1:
                         ret_expr = "std::move(op->outputs_[0])"  # small optimization

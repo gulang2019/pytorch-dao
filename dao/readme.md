@@ -6,10 +6,14 @@
 
 ### Task List 
 
-- [] Run GPT-2 training; 
-- [] Design memory allocator; 
-- [] Develop memory allocator; 
-- [] Develop memory prefetcher; 
+- [ ] Run GPT-2 training; 
+- [ ] Design memory allocator; 
+- [ ] Develop memory allocator; 
+- [ ] Develop memory prefetcher; 
+
+### Profiling 
+
+mnist torch 0.36 DAO 0.41 
 
 ### Code structure
 - include: headers
@@ -18,14 +22,32 @@
 - testing: python test of DAO
 
 ### Build
+Build a python environment 
+```
+cd ~/ssd/.venv
+python -m venv ENV_NAME 
+source ENV_NAME/bin/activate 
+```
+
 Build the project 
 ```
-conda create -n ENV_NAME python=3.9 
-conda activate ENV_NAME
 git clone git@github.com:gulang2019/pytorch-dao.git
 cd pytorch-dao 
+python setup.py build
 pip install -r requirements.txt 
-USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CC=/usr/bin/gcc USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
+USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CXX=/usr/bin/g++ CC=/usr/bin/gcc USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
+```
+
+Build python frontend 
+```
+cd dao 
+python -m pip install -e . 
+```
+
+Test
+```
+cd dao/testing 
+python ./add.py
 ```
 
 Developing
@@ -33,7 +55,7 @@ Developing
 # clean 
 python setup.py clean
 # incremental build 
-USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CC=/usr/bin/gcc USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
+USE_DAO=1 BUILD_CAFFE2=0 PRINT_CMAKE_DEBUG_INFO=1 CC=/usr/bin/gcc CXX=/usr/bin/g++ USE_FLASH_ATTENTION=0 USE_MEM_EFF_ATTENTION=0  MAX_JOBS=30 DEBUG=1 USE_DISTRIBUTED=0 USE_MKLDNN=0 USE_CUDA=1 BUILD_TEST=0 USE_FBGEMM=0 USE_NNPACK=0 USE_QNNPACK=0 USE_XNNPACK=0 taskset --cpu-list 0-30 python setup.py develop 2>&1 | tee build.log
 ```
 
 Testing 
@@ -43,9 +65,16 @@ python -c "import torch; c; b = a+a; print(b)"
 
 ### Trouble shooting
 - ImportError: /home/siyuanch/.conda/envs/dao/bin/../lib/libstdc++.so.6: version `GLIBCXX_3.4.30` not found when `import torch` 
+
+This is because we use host gcc/g++ but conda libstdc++ ...
+
+We can walk around this by modifying the `LD_LIBRARY_PATH` to instruct the compiler find the correct libstdc++.so
 ```
-conda install -c conda-forge gcc=12.1.0
-``` 
+export LD_LIBRARY_PATH=
+```
+After that, your cmake may not find the `g++` or `gcc` when doing compilation. We can solve this by setting `CC=/usr/bin/gcc CXX=/usr/bin/g++ cmake ..` with cmake.
+
+
 - 'cc1plus' not found when building the torch
 ```
 conda uninstall gcc

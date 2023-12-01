@@ -92,7 +92,9 @@
 #ifdef USE_CUDA
 #include <ATen/native/transformers/cuda/sdp_utils.h>
 #endif
-
+#ifdef USE_DAO
+#include <DAO/CPython.h>
+#endif 
 #ifdef USE_DISTRIBUTED
 #ifdef USE_C10D
 #include <torch/csrc/distributed/autograd/python_autograd.h>
@@ -1372,6 +1374,9 @@ PyObject* initModule() {
 #ifdef USE_CUDA
   THPUtils_addPyMethodDefs(methods, THCPModule_methods());
 #endif
+#ifdef USE_DAO
+  THPUtils_addPyMethodDefs(methods, DAO::python_functions()); 
+#endif 
 #if defined(USE_DISTRIBUTED) && defined(USE_C10D)
   THPUtils_addPyMethodDefs(
       methods, torch::distributed::c10d::python_functions());

@@ -178,7 +178,7 @@ if(CAFFE2_ALLOWLISTED_FILES)
 endif()
 
 if (USE_DAO) 
-  list(APPEND Caffe2_GPU_CU_SRCS ${DAO_C_SRCS})
+  # list(APPEND Caffe2_GPU_CU_SRCS ${DAO_GENERATOR_SRCS})
   list(APPEND Caffe2_GPU_INCLUDE ${DAO_INCLUDE_DIR})
 endif (USE_DAO)
 
@@ -963,9 +963,21 @@ elseif(USE_CUDA)
     set_property(TARGET torch_cuda_w_sort_by_key PROPERTY CUDA_SEPARABLE_COMPILATION OFF)
     target_link_libraries(torch_cuda PRIVATE torch_cuda_w_sort_by_key)
   else()
-    add_library(torch_cuda
-        ${Caffe2_GPU_SRCS} ${Caffe2_GPU_SRCS_W_SORT_BY_KEY}
+    add_library(torch_cuda SHARED
+        ${DAO_GENERATOR_SRCS} ${Caffe2_GPU_SRCS} ${Caffe2_GPU_SRCS_W_SORT_BY_KEY}
         ${Caffe2_GPU_CU_SRCS} ${Caffe2_GPU_CU_SRCS_W_SORT_BY_KEY})
+    message(STATUS "DAO_GENERATOR_SRCS")
+    foreach(tmp ${DAO_GENERATOR_SRCS})
+      message(STATUS "  " ${tmp})
+    endforeach()
+        message(STATUS "Caffe2_GPU_SRCS")
+    foreach(tmp ${Caffe2_GPU_SRCS})
+      message(STATUS "  " ${tmp})
+    endforeach()
+    message(STATUS "Caffe2_GPU_CU_SRCS")
+    foreach(tmp ${Caffe2_GPU_CU_SRCS})
+      message(STATUS "  " ${tmp})
+    endforeach()
   endif()
   set(CUDA_LINK_LIBRARIES_KEYWORD)
   torch_compile_options(torch_cuda)  # see cmake/public/utils.cmake
