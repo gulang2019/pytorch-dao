@@ -6,10 +6,14 @@
 
 ### Task List 
 
-- [] Run GPT-2 training; 
-- [] Design memory allocator; 
-- [] Develop memory allocator; 
-- [] Develop memory prefetcher; 
+- [ ] Run GPT-2 training; 
+- [ ] Design memory allocator; 
+- [ ] Develop memory allocator; 
+- [ ] Develop memory prefetcher; 
+
+### Profiling 
+
+mnist torch 0.36 DAO 0.41 
 
 ### Code structure
 - include: headers

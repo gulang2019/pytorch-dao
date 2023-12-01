@@ -36,6 +36,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef USE_DAO 
+#include <DAO/allocator.h>
+#endif // USE_DAO 
+
 TORCH_SDT_DEFINE_SEMAPHORE(malloc)
 TORCH_SDT_DEFINE_SEMAPHORE(free)
 
@@ -3305,6 +3309,10 @@ struct BackendStaticInitializer {
               return CudaMallocAsync::allocator();
             if (kv[1] == "native")
               return &Native::allocator;
+#ifdef USE_DAO 
+            if (kv[1] == "dao") 
+              return &DAO::allocator; 
+#endif // USE_DAO 
           }
         }
       }

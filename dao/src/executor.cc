@@ -6,7 +6,6 @@
 #include <DAO/globals.h>
 #include <DAO/utils.h>
 
-
 namespace DAO {
 
 extern ConcurrentQueue<Kernel> kernel_queue;
@@ -18,16 +17,13 @@ static std::thread executor_thread;
 
 void Executor::run() {
   while (true) {
-    DAO_INFO("Executor::run(): popping kernel!");
-    status();
+    DAO_INFO("Executor::run(): %d in kernel_queue", kernel_queue.size());
     Kernel kernel = kernel_queue_.pop();
     if (kernel.is_stop()) {
       DAO_INFO("Executor::run(): stop kernel");
       break;
     }
-    DAO_INFO("Executor::run(): run kernel %s", kernel._name.c_str());
     kernel._impl(&kernel); 
-    DAO_INFO("Executor::run(): run kernel %s done", kernel._name.c_str());
     status();
     kernel_counter.decrement();
     // DAO_INFO("Executor::run(): decrement %s done", kernel._name.c_str());

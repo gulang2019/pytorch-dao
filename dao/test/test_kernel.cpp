@@ -22,7 +22,7 @@
 TEST(TestKernel, TestSync) {
     // auto producer_op = []() { 
         DAO::Kernel kernel; 
-        kernel.set_impl([]() { std::cout << "hello world" << std::endl; });
+        kernel.set_impl([](DAO::Kernel*) { std::cout << "hello world" << std::endl; });
         DAO::push_kernel(std::move(kernel));
     // };
 

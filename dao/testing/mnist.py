@@ -8,9 +8,9 @@ import numpy as np
 import idx2numpy
 import os
 from urllib.request import urlretrieve
-import dao 
 
-# dao.verbose(1)
+import dao 
+dao.verbose(0)
 dao.launch()
 
 # Define a simple feed-forward model
@@ -31,7 +31,7 @@ def download(filename):
     url = f"http://yann.lecun.com/exdb/mnist/{filename}"
     if not os.path.exists(filename):
         urlretrieve(url, filename)
-    os.system('gzip -d ' + filename)
+        os.system('gzip -d ' + filename)
 
 download('train-images-idx3-ubyte.gz')
 download('train-labels-idx1-ubyte.gz')
@@ -56,6 +56,9 @@ if torch.cuda.is_available():
 loss_fn = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+
+import time 
+start = time.time()
 # Train the model
 for epoch in range(100):  # 10 epochs
     if torch.cuda.is_available():
@@ -68,8 +71,8 @@ for epoch in range(100):  # 10 epochs
     loss.backward()
     optimizer.step()
 
-    if (epoch+1) % 10 == 0:
+    if (epoch+1) % 1 == 0:
         dao.sync()
         print(f"Epoch: {epoch+1}, Loss: {loss.item()}")
-    
 dao.stop()
+print('time', time.time() - start, 'loss', loss.item())
