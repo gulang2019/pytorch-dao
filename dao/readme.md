@@ -57,5 +57,6 @@ Test scripts for DAO
 cd dao 
 mkdir build && cd build 
 cmake ..
+make
 ctest --test-dir test
 ```
