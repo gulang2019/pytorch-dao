@@ -1084,11 +1084,6 @@ endif()
 add_subdirectory(c10)
 add_subdirectory(caffe2)
 
-if(USE_DAO)
-  add_subdirectory(third_party/pybind11)
-  add_subdirectory(dao)
-endif(USE_DAO)
-
 # --[ Documentation
 if(BUILD_DOCS)
   # check if Doxygen is installed

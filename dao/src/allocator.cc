@@ -1,7 +1,7 @@
 #include <c10/cuda/CUDACachingAllocator.h>
 #include <c10/cuda/CUDAException.h>
 #include <c10/cuda/CUDAFunctions.h>
-#include <c10/cuda/c10::cuda::CUDAGuard.h>
+#include <c10/cuda/CUDAGuard.h>
 #include <c10/util/UniqueVoidPtr.h>
 #include <c10/util/flat_hash_map.h>
 #include <c10/util/irange.h>
