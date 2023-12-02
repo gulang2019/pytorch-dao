@@ -839,11 +839,17 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                 )
             if self.backend_index.dispatch_key == DispatchKey.CUDA:
                 if USE_DAO\
-                    and k is SchemaKind.functional\
+                    and (k in [SchemaKind.functional, SchemaKind.inplace])\
                     and not self.g.out.precomputed\
                     and self.backend_index.dispatch_key\
                     != DispatchKey.CompositeExplicitAutogradNonFunctional:
-                    sig_body.append(f'std::shared_ptr<{class_name}> op = std::make_shared<{class_name}>();') 
+                    
+                    if k is SchemaKind.functional:
+                        sig_body.append(f'std::shared_ptr<{class_name}> op = std::make_shared<{class_name}>();') 
+                    elif k is SchemaKind.inplace:
+                        sig_body.append(f'std::shared_ptr<{class_name}> op = std::make_shared<{class_name}>(self);')
+                    else: raise NotImplementedError 
+                    
                     meta_exprs = ", ".join(
                         e.expr
                         for e in translate(
@@ -913,13 +919,24 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                             captures.append(f'{x.name}')
                             
                     for i in range(len(out_args)):
-                        captures.append(f'out{i}=op->outputs_[{i}]')
-                        sig_body.append(f'kernel.set_outputs(op->outputs_[{i}]);')
-                    
+                        if k is SchemaKind.functional:
+                            captures.append(f'out{i}=op->outputs_[{i}]')
+                            sig_body.append(f'kernel.set_outputs(op->outputs_[{i}]);')
+                        elif k is SchemaKind.inplace: 
+                            captures.append(f'out{i}=op->outputs_[{i}].get()')
+                            sig_body.append(f'kernel.set_outputs(op->outputs_[{i}].get());')
+                        else: raise NotImplementedError
                     capture_expr = ','.join(captures)
                     sig_body.append(f'kernel.set_impl([{capture_expr}](DAO::Kernel* kernel)' + '{')
                     sig_body.extend(impl_body)
                     sig_body.append(f'op->impl({impl_exprs});')
+                    
+                    if k is SchemaKind.out or k is SchemaKind.inplace:
+                        for i in range(len(f.func.returns)):
+                            sig_body.append(
+                                f"if (op->proxy_outputs_[{i}].has_value()) op->outputs_[{i}].get().copy_(*op->proxy_outputs_[{i}]);"
+                            )
+                    
                     sig_body.append('});')
                     sig_body.append(f'DAO::push_kernel(std::move(kernel));')
                     
@@ -931,14 +948,19 @@ return {sig.name()}({', '.join(e.expr for e in translate(cpp_sig.arguments(), si
                             arg_types.add(arg.type)
                             print ("NEW Arg Type", arg.type)
                     
-                    if len(f.func.returns) == 1:
-                        ret_expr = "std::move(op->outputs_[0])"  # small optimization
-                    else:
-                        moved = ", ".join(
-                            f"std::move(op->outputs_[{i}])"
-                            for i in range(len(f.func.returns))
-                        )
-                        ret_expr = f"std::make_tuple({moved})"
+                    if k is SchemaKind.functional:
+                        if len(f.func.returns) == 1:
+                            ret_expr = "std::move(op->outputs_[0])"  # small optimization
+                        else:
+                            moved = ", ".join(
+                                f"std::move(op->outputs_[{i}])"
+                                for i in range(len(f.func.returns))
+                            )
+                            ret_expr = f"std::make_tuple({moved})"
+                    elif k is SchemaKind.inplace:
+                        ret_expr = "self"
+                    else: raise NotImplementedError 
+                    
                     sig_body.append(f"return {ret_expr};")
                     sig_body_str = "\n".join(sig_body)
                     return f"""\
@@ -955,7 +977,7 @@ generate_super=self.g.out.structured_inherits is not None
 """
                 
                 else: 
-                    sig_body.append(f"std::cout<<\"{class_name}\"<< \"executed without DAO\"<<std::endl;")
+                    sig_body.append(f"std::cout<<\"WARNING: {class_name}\"<< \" executed without DAO\"<<std::endl;")
             
             if k is SchemaKind.functional:
                 sig_body.append(f"{class_name} op;")
