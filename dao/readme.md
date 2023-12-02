@@ -80,6 +80,11 @@ After that, your cmake may not find the `g++` or `gcc` when doing compilation. W
 conda uninstall gcc
 ``` 
 
+- AttributeError: opt/anaconda/... python 3.8 ... Self.typing
+```
+...pytorch-dao$ rm build/CMakeCache.txt
+```
+
 Test scripts for DAO 
 
 ```
