@@ -152,7 +152,7 @@ class MemoryManager:
                 *block_ptr = block 
                 return True 
         block = new Block()
-        self.malloc(&block.start, tensor.size)
+        self._malloc(&block.start, tensor.size)
         if block == NULL: return False 
         block.size = tensor.size 
         block.record = &tensor 
