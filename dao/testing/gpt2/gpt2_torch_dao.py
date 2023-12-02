@@ -50,7 +50,8 @@ class Attention(nn.Module):
         self, 
         dim: int, 
         n_head: int,
-        dropout = 0.1
+        dropout = 0.1,
+        use_flash_attn = True 
         ):
         super().__init__()
         self.c_attn = nn.Linear(dim, 3*dim, bias=True)
@@ -58,17 +59,41 @@ class Attention(nn.Module):
         self.n_head = n_head 
         self.dim = dim 
         self.dropout = dropout
+        self.use_flash_attn = use_flash_attn 
 
     def forward(self, x):
         # x: (batch_size, seqlen, dim)
         qkv = self.c_attn(x)
         
-        qkv = qkv.reshape(x.shape[0], x.shape[1], 3, self.n_head, -1)
-        # qkv: (batch_size, seqlen, 3*dim)
-        flash_qkv = qkv.to(torch.float16)
-        dao.sync()
-        out = flash_attn_qkvpacked_func(flash_qkv, self.dropout).reshape(x.shape[0], x.shape[1], -1).to(torch.float32)
-        
+        if not self.use_flash_attn:
+            qkv = qkv.reshape(x.shape[0], x.shape[1], 3, self.n_head, -1)
+            # qkv: (batch_size, seqlen, 3*dim)
+            q, k, v = qkv[:, :, 0], qkv[:, :, 1], qkv[:, :, 2]
+            # q: (batch_size, seqlen, n_head, dim)
+            # k: (batch_size, seqlen, n_head, dim)
+            # v: (batch_size, seqlen, n_head, dim)
+            q = q.permute(0, 2, 1, 3)
+            k = k.permute(0, 2, 1, 3)
+            v = v.permute(0, 2, 1, 3)
+            # q: (batch_size, n_head, seqlen, dim)
+            # k: (batch_size, n_head, seqlen, dim)
+            # v: (batch_size, n_head, seqlen, dim)
+            attn = q @ k.transpose(-2, -1)
+            attn = attn / np.sqrt(self.dim)
+            attn = attn.softmax(dim=-1)
+            attn = F.dropout(attn, p=self.dropout, training=self.training)
+            out = attn @ v
+            # out: (batch_size, n_head, seqlen, dim)
+            out = out.transpose(1, 2).reshape(x.shape[0], x.shape[1], -1)
+        else: 
+            qkv = qkv.reshape(x.shape[0], x.shape[1], 3, self.n_head, -1)
+            # qkv: (batch_size, seqlen, 3*dim)
+            flash_qkv = qkv.to(torch.float16)
+            # flash_qkv: (batch_size, seqlen, 3*dim)
+            dao.sync()
+            out = flash_attn_qkvpacked_func(flash_qkv, self.dropout).reshape(x.shape[0], x.shape[1], -1).to(torch.float32)
+            # out: (batch_size, seqlen, n_head*dim)
+        # out: (batch_size, seqlen, n_head*dim)
         return self.c_proj(out)
 
 class TransformerBlock(nn.Module):
@@ -79,12 +104,13 @@ class TransformerBlock(nn.Module):
         n_ctx: int,
         dropout = 0.1,
         dropout_attn = 0.1, 
-        dropout_ff = 0.1
+        dropout_ff = 0.1,
+        use_flash_attn = True 
         ):
         super().__init__()
         self.ln_1 = nn.LayerNorm(dim)
         self.ln_2 = nn.LayerNorm(dim)
-        self.attn = Attention(dim, n_head, dropout)
+        self.attn = Attention(dim, n_head, dropout, use_flash_attn)
         self.mlp = FeedForward(dim, dim*4)
         self.n_ctx = n_ctx 
         self.dropout_attn = dropout_attn 
@@ -123,14 +149,15 @@ class gpt2(nn.Module):
         n_embd,
         dropout = 0.1, 
         dropout_attn = 0.1, 
-        dropout_ff = 0.1 
+        dropout_ff = 0.1,
+        use_flash_attn = True
     ):
         super().__init__()
         self.n_vocab, self.n_ctx, self.n_head, self.n_layer, self.dim = \
             n_vocab, n_ctx, n_head, n_layer, n_embd
         self.wte = torch.nn.Embedding(self.n_vocab, self.dim) 
         self.wpe = torch.nn.parameter.Parameter(torch.randn(self.n_ctx, self.dim), requires_grad=False)
-        self.blocks = torch.nn.ModuleList([TransformerBlock(self.dim, self.n_head, self.n_ctx, dropout, dropout_attn, dropout_ff) for _ in range(self.n_layer)])
+        self.blocks = torch.nn.ModuleList([TransformerBlock(self.dim, self.n_head, self.n_ctx, dropout, dropout_attn, dropout_ff, use_flash_attn) for _ in range(self.n_layer)])
         self.ln_f = nn.LayerNorm(self.dim)
         
     def forward(self, tokens):
@@ -201,6 +228,8 @@ class Trainer:
         self.profiling = args.profiling 
         self.use_tensorboard = args.use_tensorboard
         self.trace_prefix = args.trace_prefix 
+        self.testing = args.testing 
+        self.use_flash_attn = args.use_flash_attn 
         self.save_dir = ''
         folders = ['checkpoints', str(self.model_size), f'{self.dropout_attn}-{self.dropout_ff}', 'deepspeed' if self.use_deepspeed else 'torch']
         for folder in folders:
@@ -216,7 +245,7 @@ class Trainer:
         torch.set_default_dtype(torch.float32)
         
         self.model = gpt2(self.n_vocab, hparams['n_ctx'], hparams['n_head'], hparams['n_layer'], hparams['n_embd'],\
-                    dropout, self.dropout_attn, self.dropout_ff)
+                    dropout, self.dropout_attn, self.dropout_ff, self.use_flash_attn)
         self.gen_and_load_state_dict(params)
         
         if self.use_deepspeed:
@@ -292,6 +321,7 @@ class Trainer:
     
     def train(self, epoch):        
         opt = torch.optim.Adam(self.model.parameters(), lr=1e-3)
+        criterion = nn.CrossEntropyLoss(ignore_index=self.pad_id)
     
         train_loader = DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=True)
         val_loader = DataLoader(self.val_dataset, batch_size=self.batch_size, shuffle=False)
@@ -357,14 +387,12 @@ class Trainer:
                     self.model_engine.step()
                 else:
                     opt.zero_grad()
-                    dao.sync() ##
                     logits = self.model(input_tokens).view(-1, self.n_vocab)
-                    loss = compute_loss(logits, label_tokens, length)
-                    dao.sync()
+                    # loss = compute_loss(logits, label_tokens, length)
+                    loss = criterion(logits, label_tokens.view(-1))
                     loss.backward()
-                    dao.sync() ##
                     opt.step()
-                    
+                                        
                 dao.sync()
                 loss_val = loss.item()
                 print(i, j, 'loss:', loss_val)
@@ -390,6 +418,12 @@ class Trainer:
                     with open(f'{self.save_dir}/eval_losses.pkl', 'wb') as f:
                         pkl.dump(eval_losses, f)
                 t0 += time.time() - start 
+                
+                if j > 10 and self.testing: break 
+            if self.testing: break 
+        
+
+    
 
     def eval(self):
         with open(f'{self.save_dir}/training_losses.pkl', 'rb') as f:
@@ -431,7 +465,8 @@ parser.add_argument('--profiling', action='store_true')
 parser.add_argument('--use_tensorboard', action='store_true')
 parser.add_argument('--trace_prefix', type=str, default=None)
 parser.add_argument('--use_lora', action='store_true')
-# parser = deepspeed.add_config_arguments(parser)
+parser.add_argument('--testing', action = 'store_true')
+parser.add_argument('--use_flash_attn', action = 'store_true')
 
 if __name__ == '__main__':
     dao.verbose(0)
@@ -441,6 +476,7 @@ if __name__ == '__main__':
     #     for dropout_attn in [0, 0.1, 0.3, 0.5]:
     #         for dropout_ff in [0, 0.1, 0.3, 0.5]:
     args = parser.parse_args()
+    print("use_flash_attn:", args.use_flash_attn)
     # if args.model_size == '124M': batch_size = 8
     # else: batch_size = 1     
     trainer = Trainer(args, models_dir = 'models')
@@ -448,9 +484,13 @@ if __name__ == '__main__':
         trainer.eval()
     else:
         trainer.train(1)
-        
+    
+    dao.stop()
+
+'''
 # python ./gpt2_torch_dao.py --model_size 124M --batch_size 2 --eval
 # python ./gpt2_torch_dao.py --model_size 124M --batch_size 2
+'''
 
 '''
 baseline: 
