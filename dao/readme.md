@@ -79,7 +79,7 @@ After that, your cmake may not find the `g++` or `gcc` when doing compilation. W
 conda uninstall gcc
 ``` 
 
-- AttributeError: opt/anaconda/... python 3.8 ... Self.typing
+- ImportError: cannot import name 'Self' from 'typing_extensions' (/opt/anaconda3/lib/python3.8/site-packages/typing_extensions.py)
 ```
 ...pytorch-dao$ rm build/CMakeCache.txt
 ```
