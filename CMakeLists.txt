@@ -169,6 +169,7 @@ if (USE_DAO)
   set(DAO_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dao/include" CACHE PATH "DAO include directory" FORCE)
   file(GLOB DAO_C_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/dao/src/*.cc")
   set(DAO_EXECUTOR_SRCS ${DAO_SRC_DIR}/executor.cc)
+  set(DAO_ALLOCATOR_SRCS ${DAO_SRC_DIR}/dummy_allocator.cc)
   set(DAO_GENERATOR_SRCS 
     ${DAO_SRC_DIR}/generator.cc
     ${DAO_SRC_DIR}/globals.cc

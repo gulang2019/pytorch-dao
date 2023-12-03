@@ -3310,8 +3310,8 @@ struct BackendStaticInitializer {
             if (kv[1] == "native")
               return &Native::allocator;
 #ifdef USE_DAO 
-            if (kv[1] == "dao") 
-              return &DAO::allocator; 
+            if (kv[1] == "dao")
+              return DAO::getDummyAllocator(); 
 #endif // USE_DAO 
           }
         }

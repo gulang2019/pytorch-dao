@@ -46,6 +46,10 @@ set(C10_CUDA_HEADERS
     impl/CUDAGuardImpl.h
     impl/CUDATest.h
 )
+if(USE_DAO)
+  list(APPEND C10_CUDA_SRCS ${DAO_ALLOCATOR_SRCS})
+endif()
+
 set(CUDA_LINK_LIBRARIES_KEYWORD PRIVATE)
 torch_cuda_based_add_library(c10_cuda ${C10_CUDA_SRCS} ${C10_CUDA_HEADERS})
 set(CUDA_LINK_LIBRARIES_KEYWORD)
@@ -62,6 +66,13 @@ target_link_libraries(c10_cuda PUBLIC c10 torch::cudart)
 if(NOT WIN32)
 target_link_libraries(c10_cuda PRIVATE dl)
 target_compile_options(c10_cuda PRIVATE "-DPYTORCH_C10_DRIVER_API_SUPPORTED")
+endif()
+
+if(USE_DAO)
+  target_compile_definitions(c10_cuda PRIVATE "-DUSE_DAO=1")
+  target_include_directories(c10_cuda PUBLIC
+  $<BUILD_INTERFACE:${DAO_INCLUDE_DIR}>
+  )
 endif()
 
 target_include_directories(

@@ -1,10 +1,19 @@
-#include <DAO/dummy_allocator.h>
+#include <DAO/globals.h>
+#include <unordered_map>
+
+#include <c10/core/Allocator.h>
+#include <c10/cuda/CUDACachingAllocator.h>
+#include <c10/cuda/CUDAStream.h>
 
 namespace DAO {
 
 void dummy_deletor(void* ptr) {}
 
-struct DummyAllocator: public c10::cuda::CUDACachingAllocator::CUDAAllocator {
+using namespace c10;
+using namespace c10::cuda;
+using namespace c10::cuda::CUDACachingAllocator;
+
+struct DummyAllocator: public CUDAAllocator {
 private:
       bool _initialized = false; 
       int _dev_count = 0;
@@ -62,6 +71,9 @@ public:
             DAO_WARNING("attachOutOfMemoryObserver is not supported by DummyAllocator");
       }
 
+      void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) override {
+
+      }
       std::shared_ptr<AllocatorState> getCheckpointState(int device, MempoolId_t id)
             override{
             DAO_WARNING("getCheckpointState is not supported by DummyAllocator");

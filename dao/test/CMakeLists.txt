@@ -51,6 +51,6 @@ set(DAO_GENERATOR_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../src/generator.cc" "${CMAK
 add_library(printer SHARED printer.cc ${DAO_GENERATOR_SRCS})
 
 set(DAO_EXECUTOR_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/../src/generator.cc" "${CMAKE_CURRENT_SOURCE_DIR}/../src/executor.cc")
-add_library(dao_cpython SHARED test_cpython.cpp ${DAO_EXECUTOR_SRCS})
+add_library(dao_cpython SHARED test_cpython.cpp ${DAO_EXECUTOR_SRCS} ${DAO_ALLOCATOR_SRCS})
 target_include_directories(dao_cpython PUBLIC ${Python_INCLUDE_DIRS})
 target_link_libraries(dao_cpython printer ${Python_LIBRARIES})
