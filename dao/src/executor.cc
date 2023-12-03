@@ -6,6 +6,8 @@
 #include <DAO/globals.h>
 #include <DAO/utils.h>
 
+#include <cuda_runtime.h>
+
 namespace DAO {
 
 extern ConcurrentQueue<Kernel> kernel_queue;
@@ -17,32 +19,33 @@ static std::thread executor_thread;
 
 void Executor::run() {
   while (true) {
-    DAO_INFO("Executor::run(): %d in kernel_queue", kernel_queue.size());
     Kernel kernel = kernel_queue_.pop();
+    DAO_INFO("Executor: %s, %d in kernel_queue", kernel._name.c_str(), kernel_queue.size());
     if (kernel.is_stop()) {
       DAO_INFO("Executor::run(): stop kernel");
       break;
     }
     kernel._impl(&kernel); 
-    status();
     kernel_counter.decrement();
     // DAO_INFO("Executor::run(): decrement %s done", kernel._name.c_str());
   }
 }
 
+static bool launched = false;
+
 void status() {
-  DAO_INFO("status: kernel_counter(%p) = %d, %d in kernel_queue(%p)", 
-    &kernel_counter, kernel_counter.peek(), kernel_queue.size(), &kernel_queue);
+  DAO_INFO("status: launched %d kernel_counter(%p) = %d, %d in kernel_queue(%p)", 
+    launched, &kernel_counter, kernel_counter.peek(), kernel_queue.size(), &kernel_queue);
 }
 
 void sync() {
   DAO_INFO("DAO::sync");
   status();
-  kernel_counter.wait_until_zero();
+  if (launched) kernel_counter.wait_until_zero();
+  cudaDeviceSynchronize();
 }
 
 void launch(){
-  static bool launched = false;
   if (launched) {
     DAO_WARNING("executor has already been launched");
     return;

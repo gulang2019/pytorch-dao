@@ -1374,9 +1374,6 @@ PyObject* initModule() {
 #ifdef USE_CUDA
   THPUtils_addPyMethodDefs(methods, THCPModule_methods());
 #endif
-#ifdef USE_DAO
-  THPUtils_addPyMethodDefs(methods, DAO::python_functions()); 
-#endif 
 #if defined(USE_DISTRIBUTED) && defined(USE_C10D)
   THPUtils_addPyMethodDefs(
       methods, torch::distributed::c10d::python_functions());
@@ -1435,6 +1432,9 @@ PyObject* initModule() {
 #ifdef USE_CUDA
   torch::cuda::initModule(module);
 #endif
+#ifdef USE_DAO
+  DAO::python::initModule(module); 
+#endif 
   torch::cpu::initModule(module);
   torch::initVerboseBindings(module);
   ASSERT_TRUE(THPStorage_init(module));
