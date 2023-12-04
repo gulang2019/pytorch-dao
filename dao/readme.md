@@ -45,6 +45,7 @@ python -m pip install -e .
 
 Test
 ```
+export PYTORCH_CUDA_ALLOC_CONF=backend:dao
 cd dao/testing 
 python ./add.py
 ```

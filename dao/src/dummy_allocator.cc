@@ -18,11 +18,18 @@ private:
       bool _initialized = false; 
       int _dev_count = 0;
       std::vector<double> _memory_fractions;
+      mutable std::vector<void *> dummy_devPtrs;
 
 public: 
 
       DataPtr allocate(size_t n) const override {
-            return {nullptr, nullptr, &dummy_deletor, Device(DeviceType::CUDA, 0)};
+            DAO_INFO("allocate(%ld)", n);
+            int device = 0;
+            C10_CUDA_CHECK(c10::cuda::GetDevice(&device));
+            void *p;
+            cudaError_t e = cudaMalloc(&p, n);
+            dummy_devPtrs.push_back(p);
+            return {p, p, &dummy_deletor, Device(DeviceType::CUDA, device)};
       }
 
       DeleterFnPtr raw_deleter() const override {
@@ -30,7 +37,11 @@ public:
       }
 
       
-      void init(int dev_count) override {_initialized = true;_dev_count = dev_count;_memory_fractions.resize(_dev_count);}
+      void init(int dev_count) override {
+            DAO_INFO("init(%d)", dev_count);
+            _initialized = true;
+            _dev_count = dev_count;_memory_fractions.resize(_dev_count);
+      }
 
       bool initialized() override {return _initialized;}
 
@@ -46,8 +57,8 @@ public:
 
       void* getBaseAllocation(void* ptr, size_t* size) override{
             DAO_WARNING("getBaseAllocation is not supported by DummyAllocator");
-            *size = 0; 
-            return ptr;
+            if (size) *size = 0; 
+            return nullptr;
       }
 
       void recordStream(const DataPtr& ptr, cuda::CUDAStream stream) override {
@@ -72,7 +83,7 @@ public:
       }
 
       void attachAllocatorTraceTracker(AllocatorTraceTracker tracker) override {
-
+            DAO_WARNING("attachAllocatorTraceTracker is not supported by DummyAllocator");
       }
       std::shared_ptr<AllocatorState> getCheckpointState(int device, MempoolId_t id)
             override{
