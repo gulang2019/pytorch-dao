@@ -1,4 +1,5 @@
 #include <DAO/globals.h>
+#include <map>
 #include <unordered_map>
 
 #include <c10/core/Allocator.h>
@@ -7,7 +8,7 @@
 
 namespace DAO {
 
-void dummy_deletor(void* ptr) {}
+void dummy_deletor(void* ptr);
 
 using namespace c10;
 using namespace c10::cuda;
@@ -19,12 +20,11 @@ private:
       int _dev_count = 0;
       std::vector<double> _memory_fractions;
       mutable size_t total_allocated;
-      mutable std::vector<void *> dummy_devPtrs;
+      mutable std::map<void *, int> dummy_devPtrs;
 
 public: 
 
       DataPtr allocate(size_t n) const override {
-            DAO_INFO("allocate(%ld), allocated=%ld", n, total_allocated);
             int device = 0;
             C10_CUDA_CHECK(c10::cuda::GetDevice(&device));
             void *p;
@@ -34,9 +34,19 @@ public:
                   DAO_WARNING("cudaMalloc FAILED");
             } else {
                   total_allocated += n;
-                  dummy_devPtrs.push_back(p);
+                  dummy_devPtrs[p] = n;
+                  DAO_INFO("allocate(%ld)=%p, allocated=%ld", n, p, total_allocated);
             }
             return {p, p, &dummy_deletor, Device(DeviceType::CUDA, device)};
+      }
+
+      void free(void *p) {
+            DAO_INFO("delete(%p)", p);
+            auto n = dummy_devPtrs[p];
+            dummy_devPtrs.erase(p);
+            total_allocated -= n;
+            cudaError_t e = cudaFree(p);
+            if (e) DAO_WARNING("cudaFree FAILED");
       }
 
       DeleterFnPtr raw_deleter() const override {
@@ -179,6 +189,10 @@ public:
             cudaMemcpy(dest, src, count, cudaMemcpyKind::cudaMemcpyDeviceToDevice));
       }
 } dummy_allocator;
+
+void dummy_deletor(void* ptr) {
+      dummy_allocator.free(ptr);
+}
 
 c10::cuda::CUDACachingAllocator::CUDAAllocator* getDummyAllocator() {
     return &dummy_allocator;
