@@ -18,17 +18,24 @@ private:
       bool _initialized = false; 
       int _dev_count = 0;
       std::vector<double> _memory_fractions;
+      mutable size_t total_allocated;
       mutable std::vector<void *> dummy_devPtrs;
 
 public: 
 
       DataPtr allocate(size_t n) const override {
-            DAO_INFO("allocate(%ld)", n);
+            DAO_INFO("allocate(%ld), allocated=%ld", n, total_allocated);
             int device = 0;
             C10_CUDA_CHECK(c10::cuda::GetDevice(&device));
             void *p;
             cudaError_t e = cudaMalloc(&p, n);
-            dummy_devPtrs.push_back(p);
+            if (e) {
+                  p = nullptr;
+                  DAO_WARNING("cudaMalloc FAILED");
+            } else {
+                  total_allocated += n;
+                  dummy_devPtrs.push_back(p);
+            }
             return {p, p, &dummy_deletor, Device(DeviceType::CUDA, device)};
       }
 
@@ -41,6 +48,7 @@ public:
             DAO_INFO("init(%d)", dev_count);
             _initialized = true;
             _dev_count = dev_count;_memory_fractions.resize(_dev_count);
+            total_allocated = 0;
       }
 
       bool initialized() override {return _initialized;}
