@@ -23,7 +23,7 @@ extern int verbose;
 
 #define PRINT_MSG(...) do{printf(ANSI_COLOR_MAGENTA "%s:%d,%d " ANSI_COLOR_RESET, __FILE__, __LINE__,gettid()); printf(__VA_ARGS__); printf("\n");}while(0)
 #define DAO_INFO(...) do{ if (DAO::verbose) { printf(ANSI_COLOR_GREEN "[DAO::INFO]:\t" ANSI_COLOR_RESET); PRINT_MSG(__VA_ARGS__); }} while(0)
-#define DAO_WARNING(...) do{ if (DAO::verbose) { printf(ANSI_COLOR_RED "[DAO::WARNING]:\t" ANSI_COLOR_RESET); PRINT_MSG(__VA_ARGS__); }} while(0)
+#define DAO_WARNING(...) do{ printf(ANSI_COLOR_RED "[DAO::WARNING]:\t" ANSI_COLOR_RESET); PRINT_MSG(__VA_ARGS__); } while(0)
 #define DAO_ERROR(...) do{ { printf(ANSI_COLOR_RED "[DAO::ERROR]:\t" ANSI_COLOR_RESET); PRINT_MSG(__VA_ARGS__); exit(1);} } while(0)
 #define DAO_ASSERT(cond,...) do{ if (!(cond)) { printf(ANSI_COLOR_RED "[DAO::ASSERT]:\t" ANSI_COLOR_RESET); PRINT_MSG(__VA_ARGS__); assert(cond); }} while(0)
 

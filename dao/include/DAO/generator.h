@@ -6,6 +6,7 @@
 #include <functional> 
 #include <optional>
 #include <string> 
+#include <unistd.h>
 
 #include <ATen/Tensor.h> 
 #include <ATen/Scalar.h> 
@@ -22,6 +23,7 @@ struct Kernel {
   std::vector<at::Scalar> _scalars;
   std::vector<std::vector<int64_t> > _arrays;
   std::string _name = ""; 
+  pid_t _tid = 0;
   bool _stop = false; 
 
   Kernel& set_impl(std::function<void(Kernel*)> impl) {

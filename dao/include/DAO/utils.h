@@ -76,6 +76,7 @@ class ConcurrentQueue {
       // DAO_INFO("ConcurrentQueue::push(): queue is full, wait");
        cond_.wait(mlock);
     }
+    DAO_INFO("push kernel: %s, tid %d", item._name.c_str(), gettid());
     queue_.push(item);
     mlock.unlock();
     cond_.notify_one();
@@ -87,6 +88,7 @@ class ConcurrentQueue {
       // DAO_INFO("ConcurrentQueue::push(): queue is full, wait");
        cond_.wait(mlock);
     }
+    DAO_INFO("push kernel: %s, tid %d", item._name.c_str(), gettid());
     queue_.push(item);
     mlock.unlock();
     cond_.notify_one();
@@ -123,6 +125,14 @@ public:
     std::unique_lock<std::mutex> mlock(mutex_);
     // DAO_INFO("Decrementing counter %d", count_);
     count_--;
+    mlock.unlock();
+    cond_.notify_one();
+  }
+  void set_zero() {
+    // DAO_INFO("Wait Decrement");
+    std::unique_lock<std::mutex> mlock(mutex_);
+    // DAO_INFO("Decrementing counter %d", count_);
+    count_ = 0;
     mlock.unlock();
     cond_.notify_one();
   }

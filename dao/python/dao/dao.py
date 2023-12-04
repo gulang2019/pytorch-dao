@@ -14,3 +14,6 @@ def status():
 
 def stop():
     C._dao_stop()
+
+def log(msg: str):
+    C._dao_log(msg)

@@ -19,6 +19,7 @@ void launch();
 void status();
 void sync();
 void stop();
+void log (const char* msg);
 // void stop();
 } // executor 
 
